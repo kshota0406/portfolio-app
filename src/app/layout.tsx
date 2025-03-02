@@ -9,10 +9,8 @@ import {
   Box,
   Container,
   CssBaseline,
-  useMediaQuery,
   Fab,
   Tooltip,
-  Button,
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -24,12 +22,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import { getTheme } from "@/theme/theme";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ClerkProvider,
-  UserButton,
-  SignInButton,
-  useAuth,
-} from "@clerk/nextjs";
+import { ClerkProvider, UserButton, useAuth } from "@clerk/nextjs";
 
 // テーマモードのコンテキスト
 type ThemeContextType = {
@@ -286,15 +279,7 @@ function AuthButton() {
 
   return (
     <Box sx={{ ml: 2 }}>
-      {authState.isSignedIn ? (
-        <UserButton afterSignOutUrl="/" />
-      ) : (
-        <SignInButton>
-          <Button color="inherit" variant="outlined" size="small">
-            ログイン
-          </Button>
-        </SignInButton>
-      )}
+      {authState.isSignedIn && <UserButton afterSignOutUrl="/" />}
     </Box>
   );
 }

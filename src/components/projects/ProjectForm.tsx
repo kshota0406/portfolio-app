@@ -1,32 +1,29 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Button, 
-  TextField, 
-  FormControlLabel, 
-  Checkbox, 
-  Typography, 
+import { useState } from "react";
+import {
+  Box,
+  Button,
+  TextField,
+  FormControlLabel,
+  Checkbox,
+  Typography,
   Paper,
   Grid,
   Chip,
   Autocomplete,
-  FormControl,
-  InputLabel,
-  OutlinedInput,
   Stack,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
-} from '@mui/material';
-import SaveIcon from '@mui/icons-material/Save';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CloseIcon from '@mui/icons-material/Close';
-import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
-import { Project, technologyCategories } from '@/data/dummyData';
+} from "@mui/material";
+import SaveIcon from "@mui/icons-material/Save";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CloseIcon from "@mui/icons-material/Close";
+import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import { Project, technologyCategories } from "@/data/dummyData";
 
 interface ProjectFormProps {
   project?: Project;
@@ -36,19 +33,24 @@ interface ProjectFormProps {
 }
 
 const defaultProject: Project = {
-  id: '',
-  name: '',
-  description: '',
-  longDescription: '',
+  id: "",
+  name: "",
+  description: "",
+  longDescription: "",
   technologies: [],
   screenshots: [],
-  demoLink: '',
-  githubLink: '',
+  demoLink: "",
+  githubLink: "",
   featured: false,
-  createdAt: new Date().toISOString().split('T')[0],
+  createdAt: new Date().toISOString().split("T")[0],
 };
 
-const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) => {
+const ProjectForm = ({
+  project,
+  onSave,
+  onDelete,
+  onCancel,
+}: ProjectFormProps) => {
   const [formData, setFormData] = useState<Project>(project || defaultProject);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -57,10 +59,10 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
   // 入力フィールド変更ハンドラ
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     // エラーがあれば削除
     if (errors[name]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
@@ -71,15 +73,18 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
   // チェックボックス変更ハンドラ
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: checked }));
+    setFormData((prev) => ({ ...prev, [name]: checked }));
   };
 
   // 技術スタック変更ハンドラ
-  const handleTechChange = (_event: React.SyntheticEvent, newValue: string[]) => {
-    setFormData(prev => ({ ...prev, technologies: newValue }));
+  const handleTechChange = (
+    _event: React.SyntheticEvent,
+    newValue: string[]
+  ) => {
+    setFormData((prev) => ({ ...prev, technologies: newValue }));
     // エラーがあれば削除
     if (errors.technologies) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors.technologies;
         return newErrors;
@@ -89,20 +94,20 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
 
   // スクリーンショットの追加
   const handleAddScreenshot = () => {
-    const url = prompt('スクリーンショットのURLを入力してください:');
+    const url = prompt("スクリーンショットのURLを入力してください:");
     if (url && url.trim()) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        screenshots: [...prev.screenshots, url.trim()]
+        screenshots: [...prev.screenshots, url.trim()],
       }));
     }
   };
 
   // スクリーンショットの削除
   const handleRemoveScreenshot = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      screenshots: prev.screenshots.filter((_, i) => i !== index)
+      screenshots: prev.screenshots.filter((_, i) => i !== index),
     }));
   };
 
@@ -121,27 +126,27 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
   // フォーム送信処理
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // バリデーション
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.name.trim()) {
-      newErrors.name = 'プロジェクト名は必須です';
+      newErrors.name = "プロジェクト名は必須です";
     }
-    
+
     if (!formData.description.trim()) {
-      newErrors.description = '説明は必須です';
+      newErrors.description = "説明は必須です";
     }
-    
+
     if (formData.technologies.length === 0) {
-      newErrors.technologies = '少なくとも1つの技術を選択してください';
+      newErrors.technologies = "少なくとも1つの技術を選択してください";
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
+
     // 新規プロジェクトの場合はIDを生成
     if (isNewProject) {
       const newId = Date.now().toString();
@@ -152,11 +157,11 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
   };
 
   return (
-    <Paper sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
+    <Paper sx={{ p: 3, maxWidth: 800, mx: "auto" }}>
       <Typography variant="h5" component="h2" gutterBottom>
-        {isNewProject ? 'プロジェクトの新規作成' : 'プロジェクトの編集'}
+        {isNewProject ? "プロジェクトの新規作成" : "プロジェクトの編集"}
       </Typography>
-      
+
       <Box component="form" onSubmit={handleSubmit} noValidate>
         <Grid container spacing={3}>
           {/* プロジェクト名 */}
@@ -172,7 +177,7 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
               helperText={errors.name}
             />
           </Grid>
-          
+
           {/* 説明 */}
           <Grid item xs={12}>
             <TextField
@@ -186,7 +191,7 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
               helperText={errors.description}
             />
           </Grid>
-          
+
           {/* 詳細説明 */}
           <Grid item xs={12}>
             <TextField
@@ -195,11 +200,11 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
               fullWidth
               multiline
               rows={4}
-              value={formData.longDescription || ''}
+              value={formData.longDescription || ""}
               onChange={handleInputChange}
             />
           </Grid>
-          
+
           {/* 技術スタック */}
           <Grid item xs={12}>
             <Autocomplete
@@ -218,40 +223,40 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
               )}
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
-                  <Chip 
-                    label={option} 
-                    {...getTagProps({ index })} 
+                  <Chip
+                    label={option}
+                    {...getTagProps({ index })}
                     key={option}
                   />
                 ))
               }
             />
           </Grid>
-          
+
           {/* デモリンク */}
           <Grid item xs={12} sm={6}>
             <TextField
               name="demoLink"
               label="デモリンク"
               fullWidth
-              value={formData.demoLink || ''}
+              value={formData.demoLink || ""}
               onChange={handleInputChange}
               placeholder="https://example.com/demo"
             />
           </Grid>
-          
+
           {/* GitHubリンク */}
           <Grid item xs={12} sm={6}>
             <TextField
               name="githubLink"
               label="GitHubリンク"
               fullWidth
-              value={formData.githubLink || ''}
+              value={formData.githubLink || ""}
               onChange={handleInputChange}
               placeholder="https://github.com/yourusername/repo"
             />
           </Grid>
-          
+
           {/* スクリーンショット */}
           <Grid item xs={12}>
             <Typography variant="subtitle1" gutterBottom>
@@ -275,7 +280,7 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
               スクリーンショットを追加
             </Button>
           </Grid>
-          
+
           {/* 注目プロジェクト */}
           <Grid item xs={12}>
             <FormControlLabel
@@ -289,10 +294,10 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
               label="注目プロジェクトとして表示"
             />
           </Grid>
-          
+
           {/* ボタン */}
           <Grid item xs={12}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               <Box>
                 <Button
                   variant="outlined"
@@ -326,12 +331,9 @@ const ProjectForm = ({ project, onSave, onDelete, onCancel }: ProjectFormProps) 
           </Grid>
         </Grid>
       </Box>
-      
+
       {/* 削除確認ダイアログ */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleDeleteDialogClose}
-      >
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteDialogClose}>
         <DialogTitle>プロジェクトの削除</DialogTitle>
         <DialogContent>
           <DialogContentText>
