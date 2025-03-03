@@ -1,7 +1,9 @@
 // src/components/admin/ProjectAdminClient.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import {
   Box,
   Typography,
@@ -39,6 +41,8 @@ interface ProjectAdminClientProps {
 export default function ProjectAdminClient({
   initialProjects,
 }: ProjectAdminClientProps) {
+  const router = useRouter();
+  const { isSignedIn, isLoaded } = useAuth();
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -52,7 +56,23 @@ export default function ProjectAdminClient({
     message: "",
     severity: "success",
   });
+  // 認証状態チェック
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push(
+        "/sign-in?redirect_url=" + encodeURIComponent(window.location.pathname)
+      );
+    }
+  }, [isSignedIn, isLoaded, router]);
 
+  // もし認証されていなければローディング表示かリダイレクト
+  if (!isLoaded || !isSignedIn) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+        <Typography>認証情報を確認中...</Typography>
+      </Box>
+    );
+  }
   // 新規プロジェクト作成フォームを開く
   const handleCreateNew = () => {
     setSelectedProject(null);

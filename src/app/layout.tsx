@@ -11,6 +11,7 @@ import {
   CssBaseline,
   Fab,
   Tooltip,
+  Button,
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -19,9 +20,10 @@ import HomeIcon from "@mui/icons-material/Home";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import LoginIcon from "@mui/icons-material/Login";
 import { getTheme } from "@/theme/theme";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ClerkProvider, UserButton, useAuth } from "@clerk/nextjs";
 
 // テーマモードのコンテキスト
@@ -63,6 +65,20 @@ export default function RootLayout({
       // ブラウザの設定に基づいてデフォルトテーマを設定
       setMode(prefersDarkMode ? "dark" : "light");
     }
+
+    // Supabase ストレージの初期化
+    const initializeSupabaseStorage = async () => {
+      try {
+        const { initializeStorage } = await import("@/lib/supabaseStorage");
+        await initializeStorage();
+        console.log("Supabaseストレージの初期化が完了しました");
+      } catch (error) {
+        console.error("Supabaseストレージの初期化に失敗しました:", error);
+      }
+    };
+
+    initializeSupabaseStorage();
+
     setMounted(true);
   }, []);
 
@@ -183,27 +199,8 @@ export default function RootLayout({
                   sx={{ flexGrow: 1, py: 4, position: "relative" }}
                 >
                   {children}
-                  {/* 管理ページへのフローティングボタン */}
-                  <Tooltip title="管理ページ">
-                    <Fab
-                      color="secondary"
-                      aria-label="管理ページ"
-                      component="a" // Linkの代わりにaタグを使用
-                      href="/admin/projects" // 通常のURLを使用
-                      onClick={(e) => {
-                        // プログレッシブエンハンスメント: JSが有効ならハードリロード
-                        e.preventDefault();
-                        window.location.href = "/admin/projects";
-                      }}
-                      sx={{
-                        position: "fixed",
-                        bottom: 20,
-                        right: 20,
-                      }}
-                    >
-                      <AdminPanelSettingsIcon />
-                    </Fab>
-                  </Tooltip>
+                  {/* 管理ページへのフローティングボタン - 認証されている場合のみ表示 */}
+                  <AdminFabButton />
                 </Container>
 
                 {/* フッター */}
@@ -241,6 +238,7 @@ export default function RootLayout({
 // 認証ボタンコンポーネント
 function AuthButton() {
   const { isSignedIn, isLoaded } = useAuth();
+  const router = useRouter();
   const [authState, setAuthState] = useState({
     isSignedIn: false,
     isLoaded: false,
@@ -277,9 +275,51 @@ function AuthButton() {
     return null;
   }
 
+  if (authState.isSignedIn) {
+    return (
+      <Box sx={{ ml: 2 }}>
+        <UserButton afterSignOutUrl="/" />
+      </Box>
+    );
+  } else {
+    return (
+      <Button
+        variant="contained"
+        color="secondary"
+        startIcon={<LoginIcon />}
+        onClick={() => router.push("/sign-in")}
+        sx={{ ml: 2 }}
+      >
+        ログイン
+      </Button>
+    );
+  }
+}
+
+// 管理ページへのフローティングボタンコンポーネント
+function AdminFabButton() {
+  const { isSignedIn } = useAuth();
+  const router = useRouter();
+
+  // ログインしていない場合は何も表示しない
+  if (!isSignedIn) {
+    return null;
+  }
+
   return (
-    <Box sx={{ ml: 2 }}>
-      {authState.isSignedIn && <UserButton afterSignOutUrl="/" />}
-    </Box>
+    <Tooltip title="管理ページ">
+      <Fab
+        color="secondary"
+        aria-label="管理ページ"
+        onClick={() => router.push("/admin/projects")}
+        sx={{
+          position: "fixed",
+          bottom: 20,
+          right: 20,
+        }}
+      >
+        <AdminPanelSettingsIcon />
+      </Fab>
+    </Tooltip>
   );
 }

@@ -1,7 +1,9 @@
 // src/components/ui/ImageUploader.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import {
   Box,
   Button,
@@ -14,7 +16,6 @@ import {
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { uploadFile } from "@/lib/supabaseStorage";
 
 interface ImageUploaderProps {
   bucket: string;
@@ -37,11 +38,29 @@ export default function ImageUploader({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const { isSignedIn, isLoaded } = useAuth();
 
-  // handleFileSelect 関数を修正
+  // 認証状態チェック
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      setError("ログインが必要です。ログインしてください。");
+    } else {
+      setError(null);
+    }
+  }, [isSignedIn, isLoaded]);
+
+  // ファイル選択ハンドラ
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    // 認証チェック
+    if (!isSignedIn) {
+      setError("ログインが必要です。ログインしてください。");
+      router.push("/sign-in");
+      return;
+    }
 
     const file = files[0];
 
@@ -63,35 +82,54 @@ export default function ImageUploader({
     setError(null);
 
     try {
-      console.log("アップロード処理開始:", {
-        bucket,
-        path,
-        fileName: file.name,
+      // FormDataの作成
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", bucket);
+      formData.append("path", path);
+
+      // APIエンドポイントにアップロード - 認証情報を含める
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include", // 認証Cookieを含める
       });
 
-      // ファイル名からサポートされていない文字を削除
-      const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const safeFile = new File([file], safeFileName, { type: file.type });
-
-      const uploadedUrl = await uploadFile(bucket, path, safeFile);
-
-      if (uploadedUrl) {
-        console.log("アップロード成功:", uploadedUrl);
-        onUploadComplete(uploadedUrl);
-      } else {
-        console.error("アップロードに失敗しました");
-        setError(
-          "アップロードに失敗しました。ネットワーク接続とアクセス権限を確認してください。"
-        );
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 401) {
+          setError(
+            "ログインセッションが切れました。再度ログインしてください。"
+          );
+          router.push("/sign-in");
+          return;
+        }
+        throw new Error(errorData.error || "アップロードに失敗しました");
       }
-    } catch (err) {
+
+      const data = await response.json();
+
+      if (data.url) {
+        console.log("アップロード成功:", data.url);
+        onUploadComplete(data.url);
+      } else {
+        throw new Error("URLが返されませんでした");
+      }
+    } catch (err: any) {
       console.error("ファイルアップロード中にエラーが発生しました:", err);
-      setError("ファイルのアップロード中にエラーが発生しました");
+      setError(err.message || "ファイルのアップロード中にエラーが発生しました");
     } finally {
       setIsUploading(false);
     }
   };
+
   const handleBrowseClick = () => {
+    if (!isSignedIn) {
+      setError("ログインが必要です。ログインしてください。");
+      router.push("/sign-in");
+      return;
+    }
+
     fileInputRef.current?.click();
   };
 
@@ -101,6 +139,15 @@ export default function ImageUploader({
       fileInputRef.current.value = "";
     }
   };
+
+  if (!isLoaded) {
+    return (
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <CircularProgress size={20} sx={{ mr: 1 }} />
+        <Typography variant="body2">認証情報を確認中...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -152,16 +199,20 @@ export default function ImageUploader({
             isUploading ? <CircularProgress size={20} /> : <CloudUploadIcon />
           }
           onClick={handleBrowseClick}
-          disabled={isUploading}
+          disabled={isUploading || !isSignedIn}
           sx={{ mb: 2 }}
         >
-          {isUploading ? "アップロード中..." : label}
+          {isUploading
+            ? "アップロード中..."
+            : !isSignedIn
+            ? "ログインが必要です"
+            : label}
         </Button>
       )}
 
       <Typography variant="caption" color="text.secondary" display="block">
         {acceptedFileTypes.replace("*", "").replace("/", "")}形式、最大
-        {maxFileSizeMB}MBまで
+        {maxFileSizeMB}MBまで{!isSignedIn && " (ログインが必要です)"}
       </Typography>
     </Box>
   );
