@@ -1,3 +1,4 @@
+// src/components/admin/ProjectAdminClient.tsx
 "use client";
 
 import { useState } from "react";
@@ -16,19 +17,28 @@ import {
   IconButton,
   Dialog,
   DialogContent,
-  DialogTitle,
-  DialogActions,
-  Alert,
   Snackbar,
+  Alert,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { Project, projects as initialProjects } from "@/data/dummyData";
-import ProjectForm from "@/components/admin/ProjectForm";
-import { useEffect } from "react";
+import { Project } from "@prisma/client";
+import ProjectForm from "./ProjectForm";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import {
+  createProjectAction,
+  updateProjectAction,
+  deleteProjectAction,
+} from "@/app/actions/projectActions";
 
-export default function AdminProjectsClient() {
+interface ProjectAdminClientProps {
+  initialProjects: Project[];
+}
+
+export default function ProjectAdminClient({
+  initialProjects,
+}: ProjectAdminClientProps) {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -42,23 +52,6 @@ export default function AdminProjectsClient() {
     message: "",
     severity: "success",
   });
-
-  // ローカルストレージからプロジェクトデータを読み込む
-  useEffect(() => {
-    const storedProjects = localStorage.getItem("portfolio-projects");
-    if (storedProjects) {
-      try {
-        setProjects(JSON.parse(storedProjects));
-      } catch (error) {
-        console.error("プロジェクトデータの読み込みに失敗しました:", error);
-      }
-    }
-  }, []);
-
-  // プロジェクトデータをローカルストレージに保存
-  const saveProjectsToStorage = (updatedProjects: Project[]) => {
-    localStorage.setItem("portfolio-projects", JSON.stringify(updatedProjects));
-  };
 
   // 新規プロジェクト作成フォームを開く
   const handleCreateNew = () => {
@@ -78,75 +71,105 @@ export default function AdminProjectsClient() {
     setIsDeleteDialogOpen(true);
   };
 
-  // 削除ダイアログを閉じる
-  const handleDeleteDialogClose = () => {
-    setIsDeleteDialogOpen(false);
-  };
-
-  // プロジェクト削除処理
-  const handleDelete = () => {
-    if (selectedProject) {
-      const updatedProjects = projects.filter(
-        (p) => p.id !== selectedProject.id
-      );
-      setProjects(updatedProjects);
-      saveProjectsToStorage(updatedProjects);
-
-      setSnackbar({
-        open: true,
-        message: "プロジェクトが削除されました",
-        severity: "success",
-      });
-    }
-    setIsDeleteDialogOpen(false);
-  };
-
   // フォームを閉じる
   const handleFormClose = () => {
     setIsFormOpen(false);
   };
 
-  // プロジェクト保存処理
-  const handleSaveProject = (project: Project) => {
-    let updatedProjects;
-    const existingIndex = projects.findIndex((p) => p.id === project.id);
-
-    if (existingIndex >= 0) {
-      // 既存プロジェクトの更新
-      updatedProjects = [...projects];
-      updatedProjects[existingIndex] = project;
-      setSnackbar({
-        open: true,
-        message: "プロジェクトが更新されました",
-        severity: "success",
-      });
-    } else {
-      // 新規プロジェクトの追加
-      updatedProjects = [...projects, project];
-      setSnackbar({
-        open: true,
-        message: "プロジェクトが作成されました",
-        severity: "success",
-      });
-    }
-
-    setProjects(updatedProjects);
-    saveProjectsToStorage(updatedProjects);
-    setIsFormOpen(false);
+  // 削除ダイアログを閉じる
+  const handleDeleteDialogClose = () => {
+    setIsDeleteDialogOpen(false);
   };
 
-  // プロジェクトフォームからの削除処理
-  const handleFormDelete = (id: string) => {
-    const updatedProjects = projects.filter((p) => p.id !== id);
-    setProjects(updatedProjects);
-    saveProjectsToStorage(updatedProjects);
+  // プロジェクト保存処理
+  const handleSaveProject = async (
+    project: Omit<Project, "id" | "createdAt"> & { id?: string }
+  ) => {
+    try {
+      if (project.id) {
+        // 既存プロジェクトの更新
+        const { id, ...data } = project;
+        const result = await updateProjectAction(id, data);
 
-    setSnackbar({
-      open: true,
-      message: "プロジェクトが削除されました",
-      severity: "success",
-    });
-    setIsFormOpen(false);
+        if (result.success) {
+          // 成功時はプロジェクト一覧を更新
+          setProjects((prev) =>
+            prev.map((p) => (p.id === id ? result.data! : p))
+          );
+          setSnackbar({
+            open: true,
+            message: "プロジェクトが更新されました",
+            severity: "success",
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: result.error || "更新に失敗しました",
+            severity: "error",
+          });
+        }
+      } else {
+        // 新規プロジェクトの作成
+        const result = await createProjectAction(project);
+
+        if (result.success) {
+          // 成功時はプロジェクト一覧に追加
+          setProjects((prev) => [...prev, result.data!]);
+          setSnackbar({
+            open: true,
+            message: "プロジェクトが作成されました",
+            severity: "success",
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: result.error || "作成に失敗しました",
+            severity: "error",
+          });
+        }
+      }
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error("プロジェクト保存中にエラーが発生しました:", error);
+      setSnackbar({
+        open: true,
+        message: "保存中にエラーが発生しました",
+        severity: "error",
+      });
+    }
+  };
+
+  // プロジェクト削除処理
+  const handleDelete = async () => {
+    if (!selectedProject) return;
+
+    try {
+      const result = await deleteProjectAction(selectedProject.id);
+
+      if (result.success) {
+        // 成功時はプロジェクト一覧から削除
+        setProjects((prev) => prev.filter((p) => p.id !== selectedProject.id));
+        setSnackbar({
+          open: true,
+          message: "プロジェクトが削除されました",
+          severity: "success",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: result.error || "削除に失敗しました",
+          severity: "error",
+        });
+      }
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error("プロジェクト削除中にエラーが発生しました:", error);
+      setSnackbar({
+        open: true,
+        message: "削除中にエラーが発生しました",
+        severity: "error",
+      });
+    }
   };
 
   // スナックバーを閉じる
@@ -197,16 +220,20 @@ export default function AdminProjectsClient() {
                 <TableCell>{project.description}</TableCell>
                 <TableCell>
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                    {project.technologies.slice(0, 3).map((tech) => (
-                      <Chip key={tech} label={tech} size="small" />
-                    ))}
-                    {project.technologies.length > 3 && (
-                      <Chip
-                        label={`+${project.technologies.length - 3}`}
-                        size="small"
-                        variant="outlined"
-                      />
-                    )}
+                    {project.technologies &&
+                      project.technologies
+                        .slice(0, 3)
+                        .map((tech) => (
+                          <Chip key={tech} label={tech} size="small" />
+                        ))}
+                    {project.technologies &&
+                      project.technologies.length > 3 && (
+                        <Chip
+                          label={`+${project.technologies.length - 3}`}
+                          size="small"
+                          variant="outlined"
+                        />
+                      )}
                   </Box>
                 </TableCell>
                 <TableCell align="center">
@@ -252,32 +279,21 @@ export default function AdminProjectsClient() {
       >
         <DialogContent>
           <ProjectForm
-            project={selectedProject || undefined}
+            project={selectedProject}
             onSave={handleSaveProject}
-            onDelete={handleFormDelete}
             onCancel={handleFormClose}
           />
         </DialogContent>
       </Dialog>
 
       {/* プロジェクト削除確認ダイアログ */}
-      <Dialog open={isDeleteDialogOpen} onClose={handleDeleteDialogClose}>
-        <DialogTitle>プロジェクトの削除</DialogTitle>
-        <DialogContent>
-          <Typography>
-            「{selectedProject?.name}
-            」を削除してもよろしいですか？この操作は元に戻せません。
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteDialogClose} color="inherit">
-            キャンセル
-          </Button>
-          <Button onClick={handleDelete} color="error" autoFocus>
-            削除する
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        title="プロジェクトの削除"
+        message={`「${selectedProject?.name}」を削除してもよろしいですか？この操作は元に戻せません。`}
+        onConfirm={handleDelete}
+        onCancel={handleDeleteDialogClose}
+      />
 
       {/* 通知スナックバー */}
       <Snackbar

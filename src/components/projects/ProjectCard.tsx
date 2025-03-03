@@ -13,8 +13,9 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import { gsap } from "gsap";
-import { Project } from "@/data/dummyData";
+import { Project } from "@prisma/client";
 import { getTechnologyIcon } from "@/utils/technologyIcons";
+
 interface ProjectCardProps {
   project: Project;
   index: number;
@@ -22,6 +23,8 @@ interface ProjectCardProps {
 
 const ProjectCard = ({ project, index }: ProjectCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
+
+  console.log("Project in card:", project);
 
   // GSAPを使用したアニメーション
   useEffect(() => {
@@ -94,16 +97,19 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
           {project.description}
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 2 }}>
-          {project.technologies.slice(0, 4).map((tech) => (
-            <Chip
-              key={tech}
-              label={tech}
-              size="small"
-              icon={getTechnologyIcon(tech)}
-              sx={{ mb: 0.5, mr: 0.5 }}
-            />
-          ))}
-          {project.technologies.length > 4 && (
+          {project.technologies &&
+            project.technologies
+              .slice(0, 4)
+              .map((tech) => (
+                <Chip
+                  key={tech}
+                  label={tech}
+                  size="small"
+                  icon={getTechnologyIcon(tech)}
+                  sx={{ mb: 0.5, mr: 0.5 }}
+                />
+              ))}
+          {project.technologies && project.technologies.length > 4 && (
             <Chip
               label={`+${project.technologies.length - 4}`}
               size="small"

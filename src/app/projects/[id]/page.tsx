@@ -1,11 +1,39 @@
-// サーバーコンポーネント（'use client'を使用しない）
-import { projects } from '@/data/dummyData';
-import ProjectClientPage from '@/components/projects/ProjectClientPage';
+// src/app/projects/[id]/page.tsx
+import { getProjectById } from "@/services/projectService";
+import { notFound } from "next/navigation";
+import ProjectDetailsClient from "@/components/projects/ProjectDetails";
+import { Box, CircularProgress } from "@mui/material";
+import { Suspense } from "react";
 
-export default function ProjectPage({ params }: { params: { id: string } }) {
-  // サーバーサイドでプロジェクトを検索
-  const project = projects.find(p => p.id === params.id);
-  
-  // 見つかったプロジェクトと共にクライアントコンポーネントをレンダリング
-  return <ProjectClientPage projectId={params.id} initialProject={project} />;
+export default async function ProjectPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  // データベースからプロジェクト情報を取得
+  const project = await getProjectById(params.id);
+
+  // プロジェクトが見つからない場合は404ページを表示
+  if (!project) {
+    notFound();
+  }
+
+  return (
+    <Suspense
+      fallback={
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "50vh",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      }
+    >
+      <ProjectDetailsClient project={project} />
+    </Suspense>
+  );
 }

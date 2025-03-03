@@ -1,39 +1,6 @@
-// プロジェクトタイプの定義
-export interface Project {
-  id: string;
-  name: string;
-  description: string;
-  longDescription?: string;
-  technologies: string[];
-  screenshots: string[];
-  demoLink?: string;
-  githubLink?: string;
-  featured?: boolean;
-  createdAt: string;
-}
 
-// スキルタイプの定義
-export interface Skill {
-  name: string;
-  level: number; // 0-100
-  icon: string; // アイコン名またはパス
-  category: "frontend" | "backend" | "database" | "devops" | "other";
-}
-
-// プロフィールタイプの定義
-export interface Profile {
-  name: string;
-  title: string;
-  bio: string;
-  email: string;
-  github?: string;
-  linkedin?: string;
-  twitter?: string;
-  avatar?: string;
-}
-
-// ダミープロジェクトデータ
-export const projects: Project[] = [
+// このファイルは自動生成されています
+const projects = [
   {
     id: "1",
     name: "Eコマースサイト",
@@ -162,8 +129,7 @@ export const projects: Project[] = [
   },
 ];
 
-// ダミースキルデータ
-export const skills: Skill[] = [
+const skills = [
   {
     name: "React",
     level: 85,
@@ -316,8 +282,7 @@ export const skills: Skill[] = [
   },
 ];
 
-// ダミープロフィールデータ
-export const profile: Profile = {
+const profile = {
   name: "山田 太郎",
   title: "フロントエンドデベロッパー",
   bio: "フロントエンド開発に情熱を持つ開発者です。ユーザー体験を重視したWebアプリケーションの構築を得意としています。新しい技術を学ぶことが好きで、常に最新のトレンドをキャッチアップしています。以前はIT企業でフルスタック開発者として3年間勤務した経験があり、現在はフリーランスとして様々なプロジェクトに携わっています。",
@@ -328,70 +293,4 @@ export const profile: Profile = {
   avatar: "/images/icon.png",
 };
 
-// 使用可能な技術カテゴリー
-export const technologyCategories = [
-  // 既存の技術
-  "React",
-  "Next.js",
-  "TypeScript",
-  "JavaScript",
-  "Node.js",
-  "Express",
-  "Supabase",
-  "PostgreSQL",
-  "MongoDB",
-  "Material-UI",
-  "Tailwind CSS",
-  "React Native",
-  "Socket.IO",
-  "Stripe",
-  "API Integration",
-
-  // フロントエンド技術を追加
-  "Vue.js",
-  "Angular",
-  "Svelte",
-  "Redux",
-  "Bootstrap",
-  "Chakra UI",
-  "Gatsby",
-  "D3.js",
-
-  // バックエンド技術を追加
-  "Django",
-  "Ruby on Rails",
-  "GraphQL",
-  "NestJS",
-  "Laravel",
-  "Spring Boot",
-
-  // データベース関連を追加
-  "MySQL",
-  "Firebase",
-  "Redis",
-  "SQLite",
-
-  // DevOps関連を追加
-  "Kubernetes",
-  "AWS",
-  "GitHub Actions",
-  "Terraform",
-  "Azure",
-
-  // モバイル開発を追加
-  "Flutter",
-  "Swift",
-  "Kotlin",
-
-  // テスト関連を追加
-  "Jest",
-  "Cypress",
-  "Testing Library",
-
-  // その他の技術を追加
-  "Electron",
-  "PWA",
-  "WebSockets",
-  "TensorFlow.js",
-  "Blockchain",
-];
+module.exports = { projects, skills, profile };

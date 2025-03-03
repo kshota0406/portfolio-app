@@ -1,6 +1,7 @@
+// src/components/admin/ProjectForm.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -13,53 +14,66 @@ import {
   Chip,
   Autocomplete,
   Stack,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
-import DeleteIcon from "@mui/icons-material/Delete";
 import CloseIcon from "@mui/icons-material/Close";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
-import { Project, technologyCategories } from "@/data/dummyData";
-
+import { Project } from "@prisma/client";
+import { technologyCategories } from "@/data/dummyData";
+// インポート追加
+import ImageUploader from "@/components/ui/ImageUploader";
 interface ProjectFormProps {
-  project?: Project;
-  onSave: (project: Project) => void;
-  onDelete?: (id: string) => void;
+  project?: Project | null;
+  onSave: (
+    project: Omit<Project, "id" | "createdAt"> & { id?: string }
+  ) => void;
   onCancel: () => void;
 }
 
-const defaultProject: Project = {
-  id: "",
-  name: "",
-  description: "",
-  longDescription: "",
-  technologies: [],
-  screenshots: [],
-  demoLink: "",
-  githubLink: "",
-  featured: false,
-  createdAt: new Date().toISOString().split("T")[0],
-};
-
-const ProjectForm = ({
+export default function ProjectForm({
   project,
   onSave,
-  onDelete,
   onCancel,
-}: ProjectFormProps) => {
-  const [formData, setFormData] = useState<Project>(project || defaultProject);
+}: ProjectFormProps) {
+  const [formData, setFormData] = useState<
+    Omit<Project, "id" | "createdAt"> & { id?: string }
+  >({
+    name: "",
+    description: "",
+    longDescription: "",
+    technologies: [],
+    screenshots: [],
+    demoLink: "",
+    githubLink: "",
+    featured: false,
+    userId: "dummy-user-id", // 将来的には認証されたユーザーIDを使用
+  });
+
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const isNewProject = !project || !project.id;
+
+  // 初期値の設定
+  useEffect(() => {
+    if (project) {
+      setFormData({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        longDescription: project.longDescription || "",
+        technologies: project.technologies || [],
+        screenshots: project.screenshots || [],
+        demoLink: project.demoLink || "",
+        githubLink: project.githubLink || "",
+        featured: project.featured || false,
+        userId: project.userId || "dummy-user-id",
+      });
+    }
+  }, [project]);
 
   // 入力フィールド変更ハンドラ
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
     // エラーがあれば削除
     if (errors[name]) {
       setErrors((prev) => {
@@ -82,6 +96,7 @@ const ProjectForm = ({
     newValue: string[]
   ) => {
     setFormData((prev) => ({ ...prev, technologies: newValue }));
+
     // エラーがあれば削除
     if (errors.technologies) {
       setErrors((prev) => {
@@ -98,7 +113,7 @@ const ProjectForm = ({
     if (url && url.trim()) {
       setFormData((prev) => ({
         ...prev,
-        screenshots: [...prev.screenshots, url.trim()],
+        screenshots: [...(prev.screenshots || []), url.trim()],
       }));
     }
   };
@@ -109,18 +124,6 @@ const ProjectForm = ({
       ...prev,
       screenshots: prev.screenshots.filter((_, i) => i !== index),
     }));
-  };
-
-  // 削除ダイアログの開閉
-  const handleDeleteDialogOpen = () => setDeleteDialogOpen(true);
-  const handleDeleteDialogClose = () => setDeleteDialogOpen(false);
-
-  // 削除処理
-  const handleDelete = () => {
-    if (onDelete && formData.id) {
-      onDelete(formData.id);
-    }
-    handleDeleteDialogClose();
   };
 
   // フォーム送信処理
@@ -147,19 +150,14 @@ const ProjectForm = ({
       return;
     }
 
-    // 新規プロジェクトの場合はIDを生成
-    if (isNewProject) {
-      const newId = Date.now().toString();
-      onSave({ ...formData, id: newId });
-    } else {
-      onSave(formData);
-    }
+    // 保存処理
+    onSave(formData);
   };
 
   return (
-    <Paper sx={{ p: 3, maxWidth: 800, mx: "auto" }}>
+    <Paper sx={{ p: 3 }}>
       <Typography variant="h5" component="h2" gutterBottom>
-        {isNewProject ? "プロジェクトの新規作成" : "プロジェクトの編集"}
+        {formData.id ? "プロジェクトの編集" : "プロジェクトの新規作成"}
       </Typography>
 
       <Box component="form" onSubmit={handleSubmit} noValidate>
@@ -262,6 +260,19 @@ const ProjectForm = ({
             <Typography variant="subtitle1" gutterBottom>
               スクリーンショット
             </Typography>
+            <Box sx={{ mb: 2 }}>
+              <ImageUploader
+                bucket="projects"
+                path={formData.id || "new-project"}
+                onUploadComplete={(url) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    screenshots: [...(prev.screenshots || []), url],
+                  }));
+                }}
+                label="スクリーンショットをアップロード"
+              />
+            </Box>
             <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
               {formData.screenshots.map((screenshot, index) => (
                 <Chip
@@ -271,14 +282,6 @@ const ProjectForm = ({
                 />
               ))}
             </Stack>
-            <Button
-              startIcon={<AddPhotoAlternateIcon />}
-              onClick={handleAddScreenshot}
-              variant="outlined"
-              size="small"
-            >
-              スクリーンショットを追加
-            </Button>
           </Grid>
 
           {/* 注目プロジェクト */}
@@ -298,27 +301,14 @@ const ProjectForm = ({
           {/* ボタン */}
           <Grid item xs={12}>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Box>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  onClick={onCancel}
-                  startIcon={<CloseIcon />}
-                  sx={{ mr: 1 }}
-                >
-                  キャンセル
-                </Button>
-                {!isNewProject && onDelete && (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={handleDeleteDialogOpen}
-                    startIcon={<DeleteIcon />}
-                  >
-                    削除
-                  </Button>
-                )}
-              </Box>
+              <Button
+                variant="outlined"
+                color="inherit"
+                onClick={onCancel}
+                startIcon={<CloseIcon />}
+              >
+                キャンセル
+              </Button>
               <Button
                 type="submit"
                 variant="contained"
@@ -331,26 +321,6 @@ const ProjectForm = ({
           </Grid>
         </Grid>
       </Box>
-
-      {/* 削除確認ダイアログ */}
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteDialogClose}>
-        <DialogTitle>プロジェクトの削除</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            このプロジェクトを削除してもよろしいですか？この操作は元に戻せません。
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteDialogClose} color="inherit">
-            キャンセル
-          </Button>
-          <Button onClick={handleDelete} color="error" autoFocus>
-            削除する
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Paper>
   );
-};
-
-export default ProjectForm;
+}

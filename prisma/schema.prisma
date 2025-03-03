@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// プロジェクトモデル
+model Project {
+  id              String   @id @default(uuid())
+  name            String
+  description     String
+  longDescription String?  @map("long_description")
+  technologies    String[]
+  screenshots     String[]
+  demoLink        String?  @map("demo_link")
+  githubLink      String?  @map("github_link")
+  featured        Boolean  @default(false)
+  createdAt       DateTime @default(now()) @map("created_at")
+  userId          String?  @map("user_id")
+
+  @@map("projects")
+}
+
+// スキルモデル
+model Skill {
+  id       String @id @default(uuid())
+  name     String
+  level    Int
+  icon     String?
+  category String
+  userId   String? @map("user_id")
+
+  @@map("skills")
+}
+
+// プロフィールモデル
+model Profile {
+  id       String  @id
+  name     String
+  title    String?
+  bio      String?
+  email    String?
+  github   String?
+  linkedin String?
+  twitter  String?
+  avatar   String?
+
+  @@map("profiles")
+}
